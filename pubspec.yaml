@@ -14,7 +14,7 @@ dependencies:
   cloud_firestore: ^4.16.0
   firebase_database: ^10.5.0
   geolocator: ^7.0.3
-  
+  flutter_rating_bar: ^4.0.0
   flutter:
     sdk: flutter
 
