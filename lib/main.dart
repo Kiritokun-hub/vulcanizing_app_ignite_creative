@@ -85,9 +85,6 @@ class _MainAppState extends State<MainApp> {
 }
 
 
-
-
-
 class HomeScreen extends StatelessWidget {
   const HomeScreen({Key? key}) : super(key: key);
 
@@ -210,6 +207,7 @@ class ReviewScreen extends StatefulWidget {
 }
 
 class _ReviewScreenState extends State<ReviewScreen> {
+  TextEditingController _reviewController = TextEditingController();
   int _rating = 0;
   String _review = '';
 
@@ -221,18 +219,20 @@ class _ReviewScreenState extends State<ReviewScreen> {
         .snapshots()
         .map((snapshot) {
       return snapshot.docs.map((doc) => doc.data() as Map<String, dynamic>).toList();
+
     });
   }
 
   // Function to submit review
   void submitReview(BuildContext context) async {
     String userId = FirebaseAuth.instance.currentUser?.uid ?? '';
+    String reviewText = _reviewController.text.trim();
     // Add review to collection
     try {
       await FirebaseFirestore.instance.collection('reviews').add({
         'userId': userId,
         'rating': _rating,
-        'review': _review,
+        'review': reviewText,
         'timestamp': DateTime.now(),
       });
       // Show success message
@@ -306,23 +306,24 @@ class _ReviewScreenState extends State<ReviewScreen> {
                                     Icons.star,
                                     color: Colors.amber,
                                   ),
-                                  onRatingUpdate: (double rating) {
+                                  onRatingUpdate: (double value) {
                                     setState(() {
-                                      _rating = rating.toInt();
+                                      _rating = value.toInt();
                                     });
                                   },
                                 ),
                                 // Review text input
                                 Expanded(
                                   child: TextField(
+                                    controller: _reviewController,
                                     decoration: InputDecoration(
                                       hintText: 'Write your review here...',
                                     ),
-                                    onChanged: (value) {
-                                      setState(() {
-                                        _review = value;
-                                      });
-                                    },
+                                    // onChanged: (value) {
+                                    //   setState(() {
+                                    //     _review = value;
+                                    //   });
+                                    // },
                                   ),
                                 ),
                                 // Submit button
@@ -353,6 +354,8 @@ class _ReviewScreenState extends State<ReviewScreen> {
     );
   }
 }
+
+
 class BookingForm extends StatefulWidget {
   @override
   _BookingFormState createState() => _BookingFormState();
