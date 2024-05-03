@@ -15,8 +15,10 @@ dependencies:
   firebase_database: ^10.5.0
   geolocator: ^7.0.3
   flutter_rating_bar: ^4.0.0
+
   flutter:
     sdk: flutter
+    
 
 dev_dependencies:
   flutter_test:
@@ -25,3 +27,5 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+  - assets/

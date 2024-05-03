@@ -24,7 +24,7 @@ class MainApp extends StatefulWidget {
 
 class _MainAppState extends State<MainApp> {
   int selectedTab = 0;
-  List<Widget> screens = [HomeScreen(), ProfileScreen(), ReviewScreen()];
+  List<Widget> screens = [HomeScreen(),  ReviewScreen()];
 
   @override
   void initState() {
@@ -38,7 +38,28 @@ class _MainAppState extends State<MainApp> {
   Widget build(BuildContext context) {
     return MaterialApp(
       home: Scaffold(
-        appBar: AppBar(title: const Text('Ignite Creative')),
+      appBar: AppBar(
+        title: Row(
+          children: [
+            Image.asset(
+              'assets/lugo.png',
+              height: 40,
+              width: 40,
+            ),
+            SizedBox(width: 8),
+            Text(
+              'Ignite Creative',
+              style: TextStyle(
+                color: Colors.black,
+                fontWeight: FontWeight.bold,
+                fontFamily: 'Pacifico',
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: Colors.white,
+      ),
+        
         body: FirebaseAuth.instance.currentUser == null
             ? SignInScreen(
                 providers: [EmailAuthProvider()],
@@ -63,10 +84,7 @@ class _MainAppState extends State<MainApp> {
                     icon: Icon(Icons.home),
                     label: 'Home',
                   ),
-                  BottomNavigationBarItem(
-                    icon: Icon(Icons.person),
-                    label: 'Profile',
-                  ),
+                  
                   BottomNavigationBarItem(
                     icon: Icon(Icons.book),
                     label: 'Review',
@@ -78,7 +96,10 @@ class _MainAppState extends State<MainApp> {
                     selectedTab = value;
                   });
                 },
+                backgroundColor: Color.fromARGB(255, 250, 227, 194), // Baguhin ang kulay ng background ng navigation bar
+                selectedItemColor: Colors.black, // Baguhin ang kulay kapag pinipindot
               ),
+
       ),
     );
   }
@@ -94,9 +115,17 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Color.fromARGB(211, 173, 98, 31),
       appBar: AppBar(
-        title: Text('Home'),
-      ),
+  title: Text(
+    'Book',
+    style: TextStyle(
+      fontWeight: FontWeight.bold, // Bagong setting para gawing bold ang text
+    ),
+  ),
+  backgroundColor: Color.fromARGB(255, 255, 166, 0),
+),
+
       floatingActionButton: Column(
         mainAxisAlignment: MainAxisAlignment.end,
         crossAxisAlignment: CrossAxisAlignment.end,
@@ -108,6 +137,8 @@ class HomeScreen extends StatelessWidget {
                 builder: (context) => BookingForm(),
               );
             },
+            backgroundColor: Color.fromARGB(255, 255, 166, 0), // Palitan ang background color ng FloatingActionButton
+            foregroundColor: Colors.black, // Kulay ng icon
             child: Icon(Icons.add),
           ),
           SizedBox(height: 10),
@@ -116,13 +147,22 @@ class HomeScreen extends StatelessWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => BookingInProgressScreen(userId: 'UserId',),
+                  builder: (context) => BookingInProgressScreen(userId: 'UserId'),
                 ),
               );
             },
+            backgroundColor: Color.fromARGB(255, 255, 166, 0), // Palitan ang background color ng FloatingActionButton
+            foregroundColor: Colors.black, // Kulay ng icon
             child: Icon(Icons.timer), // Stopwatch icon represents booking in process
           ),
         ],
+      ),
+      body: Center(
+        child: Image.asset(
+          'assets/lugo.png', // Lagyan ng tamang path ang iyong larawan
+          width: 500 , // Palitan ang lapad ng larawan ayon sa iyong preference
+          height: 500, // Palitan ang taas ng larawan ayon sa iyong preference
+        ),
       ),
     );
   }
@@ -147,8 +187,16 @@ class BookingInProgressScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+              backgroundColor: Color.fromARGB(211, 173, 98, 31),
+
       appBar: AppBar(
-        title: const Text('Book Accepted'),
+      backgroundColor: Color.fromARGB(255, 255, 166, 0),
+         title: Text(
+    'On Proccess',
+    style: TextStyle(
+      fontWeight: FontWeight.bold, // Bagong setting para gawing bold ang text
+    ),
+  ),
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
@@ -165,9 +213,14 @@ class BookingInProgressScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Shop Owner IDs Accepted your Booking',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
+  'Shop Owner IDs Accepted your Booking',
+  style: TextStyle(
+    fontSize: 20,
+    fontWeight: FontWeight.bold,
+    color: Colors.white, // Bagong kulay ng text
+  ),
+),
+
             StreamBuilder<List<String>>(
               stream: _pendingStream(FirebaseAuth.instance.currentUser?.uid ?? ''),
               builder: (context, snapshot) {
@@ -186,6 +239,8 @@ class BookingInProgressScreen extends StatelessWidget {
                     itemCount: shopOwnerIds.length,
                     itemBuilder: (context, index) {
                       return Card(
+                          color: Color.fromARGB(255, 250, 211, 134), // Palitan ang background color ng Card
+
                         margin: EdgeInsets.symmetric(vertical: 8.0),
                         child: ListTile(
                           title: Text('Shop Owner ID: ${shopOwnerIds[index]}'),
@@ -208,12 +263,12 @@ class ReviewScreen extends StatefulWidget {
   @override
   _ReviewScreenState createState() => _ReviewScreenState();
 }
-
 class _ReviewScreenState extends State<ReviewScreen> {
   int _rating = 0;
   String _review = '';
+  String _currentReview = '';
+  int _selectedCardIndex = -1; // Track the index of the selected card
 
-  // Stream to listen for changes in the finish collection with matching userId
   Stream<List<Map<String, dynamic>>> _finishStream(String userId) {
     return FirebaseFirestore.instance
         .collection('finish')
@@ -224,13 +279,13 @@ class _ReviewScreenState extends State<ReviewScreen> {
     });
   }
 
-  // Function to submit review
-  void submitReview(BuildContext context) async {
+  void submitReview(BuildContext context, String shopOwnerId) async {
     String userId = FirebaseAuth.instance.currentUser?.uid ?? '';
     // Add review to collection
     try {
       await FirebaseFirestore.instance.collection('reviews').add({
         'userId': userId,
+        'shopOwnerId': shopOwnerId, // Add shopOwnerId to the review
         'rating': _rating,
         'review': _review,
         'timestamp': DateTime.now(),
@@ -252,48 +307,62 @@ class _ReviewScreenState extends State<ReviewScreen> {
       );
     }
   }
-
-  @override
-  Widget build(BuildContext context) {
-    String userId = FirebaseAuth.instance.currentUser?.uid ?? ''; // Get current userId
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Review'),
-      ),
-      body: Column(
-        children: [
-          Expanded(
-            child: StreamBuilder<List<Map<String, dynamic>>>(
-              stream: _finishStream(userId), // Pass userId to _finishStream
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return Center(child: CircularProgressIndicator());
-                }
-                if (snapshot.hasError) {
-                  return Text('Error: ${snapshot.error}');
-                }
-                List<Map<String, dynamic>> bookings = snapshot.data ?? [];
-                if (bookings.isEmpty) {
-                  return Center(child: Text('No bookings found.'));
-                }
-                return ListView.builder(
-                  itemCount: bookings.length,
-                  itemBuilder: (context, index) {
-                    // Display only the shopOwnerId from the finish collection
-                    return Card(
-                      margin: EdgeInsets.symmetric(vertical: 8.0),
-                      child: ListTile(
-                        title: Text('Shop Owner ID: ${bookings[index]['shopOwnerId']}'),
-                        // You can add more details if needed
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Status: ${bookings[index]['status']}'),
-                            SizedBox(height: 10),
-                            // Review submission section
-                            Row(
+@override
+Widget build(BuildContext context) {
+  String userId = FirebaseAuth.instance.currentUser?.uid ?? ''; // Get current userId
+  return Scaffold(
+    backgroundColor: Color.fromARGB(211, 173, 98, 31), 
+    appBar: AppBar(
+      backgroundColor: Color.fromARGB(255, 255, 166, 0), // Palitan ang background color ng AppBar
+      title: Text('Review'),
+      actions: [
+        IconButton(
+          icon: Icon(Icons.logout), // I-icon para sa logout
+          onPressed: () {
+            FirebaseAuth.instance.signOut(); // Mag-logout gamit ang FirebaseAuth
+            Navigator.pushReplacementNamed(context, '/login'); // Pumunta sa screen ng login
+          },
+        ),
+      ],
+    ),
+    body: StreamBuilder<List<Map<String, dynamic>>>(
+      stream: _finishStream(userId), // Pass userId to _finishStream
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError) {
+          return Text('Error: ${snapshot.error}');
+        }
+        List<Map<String, dynamic>> bookings = snapshot.data ?? [];
+        if (bookings.isEmpty) {
+          return Center(child: Text('No bookings found.'));
+        }
+        return ListView.builder(
+          itemCount: bookings.length,
+          itemBuilder: (context, index) {
+            // Display only the shopOwnerId from the finish collection
+            String shopOwnerId = bookings[index]['shopOwnerId'];
+            return GestureDetector(
+              onTap: () {
+                setState(() {
+                  _selectedCardIndex = index;
+                  _rating = 0; // Reset rating when a card is selected
+                });
+              },
+              child: Card(
+                color: Color.fromARGB(255, 250, 211, 134), // Palitan ang background color ng Card
+                margin: EdgeInsets.symmetric(vertical: 8.0),
+                child: ListTile(
+                  title: Text('Shop Owner ID: $shopOwnerId'),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Status: ${bookings[index]['status']}'),
+                      SizedBox(height: 10),
+                      _selectedCardIndex == index
+                          ? Row(
                               children: <Widget>[
-                                // Rating bar
                                 RatingBar.builder(
                                   initialRating: _rating.toDouble(),
                                   minRating: 1,
@@ -309,49 +378,49 @@ class _ReviewScreenState extends State<ReviewScreen> {
                                   onRatingUpdate: (double rating) {
                                     setState(() {
                                       _rating = rating.toInt();
+                                      print('Rating changed: $_rating');
                                     });
                                   },
                                 ),
-                                // Review text input
                                 Expanded(
                                   child: TextField(
                                     decoration: InputDecoration(
                                       hintText: 'Write your review here...',
                                     ),
                                     onChanged: (value) {
-                                      setState(() {
-                                        _review = value;
-                                      });
+                                      _currentReview = value;
                                     },
                                   ),
                                 ),
-                                // Submit button
                                 ElevatedButton(
                                   onPressed: () {
-                                    // Call submitReview when the user presses the submit button
-                                    submitReview(context);
+                                    setState(() {
+                                      _review = _currentReview;
+                                    });
+                                    submitReview(context, shopOwnerId);
                                   },
-                                  child: Text('Submit'),
+                                  child: Text(
+                                    'Submit',
+                                    style: TextStyle(color: Colors.white), // Bagong kulay ng text
+                                  ),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Color.fromARGB(211, 173, 98, 31), // Bagong background color
+                                  ),
                                 ),
                               ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                );
-              },
-            ),
-          ),
-          SizedBox(height: 20),
-          // Optionally, you can add a form for submitting reviews here
-          // For example:
-          // ReviewForm(),
-        ],
-      ),
-    );
-  }
+                            )
+                          : SizedBox.shrink(), // Hide the stars if the card is not selected
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    ),
+  );
+}
 }
 class BookingForm extends StatefulWidget {
   @override
@@ -393,93 +462,115 @@ class _BookingFormState extends State<BookingForm> {
     _emailController.dispose();
     super.dispose();
   }
-
-  @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      child: Padding(
-        padding: EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              TextFormField(
-                controller: _nameController,
-                decoration: InputDecoration(labelText: 'Name'),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter your name';
-                  }
-                  return null;
-                },
-              ),
-              SizedBox(height: 16.0),
-              TextFormField(
-                controller: _phoneNumberController,
-                decoration: InputDecoration(labelText: 'Phone Number'),
-                keyboardType: TextInputType.phone,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter your phone number';
-                  }
-                  return null;
-                },
-              ),
-              SizedBox(height: 16.0),
-              TextFormField(
-                controller: _emailController,
-                decoration: InputDecoration(labelText: 'Email'),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter your email';
-                  }
-                  return null;
-                },
-              ),
-              SizedBox(height: 16.0),
-              ElevatedButton(
-                onPressed: () async {
-                  if (_formKey.currentState!.validate()) {
-                    try {
-                      String documentId = FirebaseFirestore.instance.collection('booking').doc().id;
-                      await _uploadBooking(documentId);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Row(
-                            children: [
-                              Icon(Icons.check_circle, color: Colors.green),
-                              SizedBox(width: 8),
-                              Text('Booking submitted successfully.'),
-                            ],
-                          ),
-                        ),
-                      );
-                      Navigator.pop(context);
-                    } catch (error) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Failed to submit booking. Please try again.'),
-                        ),
-                      );
+@override
+Widget build(BuildContext context) {
+  return SingleChildScrollView(
+    child: Padding(
+      padding: EdgeInsets.all(16.0),
+      child: Card(
+        color: Color.fromARGB(255, 250, 211, 134),
+        elevation: 4,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(15.0),
+        ),
+        child: Padding(
+          padding: EdgeInsets.all(16.0),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                TextFormField(
+                  controller: _nameController,
+                  decoration: InputDecoration(labelText: 'Name'),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter your name';
                     }
-                  }
-                },
-                child: Text('Submit'),
-              ),
-              SizedBox(height: 16.0),
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                },
-                child: Text('Cancel'),
-              ),
-            ],
+                    return null;
+                  },
+                ),
+                SizedBox(height: 16.0),
+                TextFormField(
+                  controller: _phoneNumberController,
+                  decoration: InputDecoration(labelText: 'Phone Number'),
+                  keyboardType: TextInputType.phone,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter your phone number';
+                    }
+                    return null;
+                  },
+                ),
+                SizedBox(height: 16.0),
+                TextFormField(
+                  controller: _emailController,
+                  decoration: InputDecoration(labelText: 'Email'),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter your email';
+                    }
+                    return null;
+                  },
+                ),
+                SizedBox(height: 16.0),
+               ElevatedButton(
+  onPressed: () async {
+    if (_formKey.currentState!.validate()) {
+      try {
+        String documentId = FirebaseFirestore.instance.collection('booking').doc().id;
+        await _uploadBooking(documentId);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.green),
+                SizedBox(width: 8),
+                Text('Booking submitted successfully.', style: TextStyle(color: Colors.white)),
+              ],
+            ),
+          ),
+        );
+        Navigator.pop(context);
+      } catch (error) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to submit booking. Please try again.', style: TextStyle(color: Colors.white)),
+          ),
+        );
+      }
+    }
+  },
+  child: Text('Submit', style: TextStyle(color: Colors.white)),
+  style: ElevatedButton.styleFrom(
+    backgroundColor: Color.fromARGB(211, 173, 98, 31), // Bagong background color
+  ),
+),
+SizedBox(height: 16.0),
+TextButton(
+  onPressed: () {
+    Navigator.pop(context);
+  },
+  child: Text(
+    'Cancel',
+    style: TextStyle(color: Colors.white),
+  ),
+  style: TextButton.styleFrom(
+    backgroundColor: Color.fromARGB(211, 173, 98, 31), // Bagong background color
+  ),
+),
+
+
+
+              ],
+            ),
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
+
 
   Future<void> _uploadBooking(String documentId) async {
     try {
@@ -515,36 +606,7 @@ class _BookingFormState extends State<BookingForm> {
   }
 }
 
-class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({Key? key}) : super(key: key);
 
-  @override
-  State<ProfileScreen> createState() => _ProfileScreenState();
-}
-
-class _ProfileScreenState extends State<ProfileScreen> {
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Profile'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () {
-              FirebaseAuth.instance.signOut();
-              
-            },
-            tooltip: 'Logout',
-          ),
-        ],
-      ),
-      body: Center(
-        child: const Text('Profile content goes here'),
-      ),
-    );
-  }
-}
 class InformationScreen extends StatefulWidget {
   @override
   _InformationScreenState createState() => _InformationScreenState();
@@ -608,21 +670,6 @@ class _InformationScreenState extends State<InformationScreen> {
                           return null;
                         },
                       ),
-                      SizedBox(height: 10),
-                      DropdownButtonFormField<String>(
-                        value: _selectedRole,
-                        items: ['Shop Owner', 'Customer']
-                            .map((role) => DropdownMenuItem(
-                                  child: Text(role),
-                                  value: role,
-                                ))
-                            .toList(),
-                        onChanged: (value) {
-                          setState(() {
-                            _selectedRole = value!;
-                          });
-                        },
-                      ),
                       SizedBox(height: 20),
                       ElevatedButton(
                         onPressed: () {
@@ -663,17 +710,14 @@ class _InformationScreenState extends State<InformationScreen> {
         ),
       );
 
-      // Navigate to the appropriate screen based on user role
-      if (_selectedRole == 'Shop Owner') {
-        // Navigate back to the main screen
-        Navigator.pop(context);
-      } else {
-        // Navigate to the profile screen
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => MainApp()),
-        );
-      }
+      // Always set the role to Customer
+      _selectedRole = 'Customer';
+
+      // Navigate to the profile screen
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => MainApp()),
+      );
     } catch (error) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
