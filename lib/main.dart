@@ -191,7 +191,7 @@ class BookingInProgressScreen extends StatelessWidget {
 
       appBar: AppBar(
       backgroundColor: Color.fromARGB(255, 255, 166, 0),
-         title: Text(
+      title: Text(
     'On Proccess',
     style: TextStyle(
       fontWeight: FontWeight.bold, // Bagong setting para gawing bold ang text
